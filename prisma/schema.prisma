@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PaymentTokenStatus {
+  CREATED
+  PENDING
+  SUCCESSFUL
+  FAILED
+  DECLINED
+  EXPIRED
+  ERROR
+}
+
+enum CreditTransactionStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+enum TransactionType {
+  grant
+  spend
+  refund
+  adjustment
+}
+
+model user {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions      session[]
+  accounts      account[]
+
+  userCredits   user_credits?
+  transactions  credit_transaction[]
+  paymentTokens payment_token[]
+}
+
+model session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model user_credits {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model payment_token {
+  id           String             @id @default(cuid())
+  userId       String
+  status       PaymentTokenStatus
+  gatewayUid   String?
+  gatewayToken String?
+  rawPayload   Json?
+  amountCents  Int
+  currency     String
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  user         user               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions credit_transaction[]
+
+  @@index([userId])
+  @@index([gatewayUid])
+}
+
+model credit_transaction {
+  id             String                  @id @default(cuid())
+  userId         String
+  type           TransactionType
+  amount         Int
+  status         CreditTransactionStatus @default(SUCCESSFUL)
+  reason         String?
+  generationId   String?
+  paymentTokenId String?                 @unique
+  pdfInsightId   String?
+  createdAt      DateTime                @default(now())
+
+  user           user                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentToken   payment_token?          @relation(fields: [paymentTokenId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+}
