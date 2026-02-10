@@ -25,6 +25,7 @@ import { HandlePaymentWebhookUseCase } from '@/entities/payment/api/server/use-c
 import { SecureProcessorReturnController } from '@/entities/payment/api/server/controller/secure-processor-return.controller'
 import { SecureProcessorWebhookController } from '@/entities/payment/api/server/controller/secure-processor-webhook.controller'
 import { DashboardController, DashboardRepository, DashboardService } from '@/entities/dashboard'
+import { MatchController, MatchRepository, MatchService } from '@/entities/match'
 
 export const container = new Container({
     defaultScope: 'Singleton',
@@ -60,6 +61,11 @@ export function initializeContainer(): void {
     container.bind(DashboardRepository).toSelf()
     container.bind(DashboardService).toSelf()
     container.bind(DashboardController).toSelf()
+
+    // Match entity bindings
+    container.bind(MatchRepository).toSelf()
+    container.bind(MatchService).toSelf()
+    container.bind(MatchController).toSelf()
 }
 
 // Initialize container on module load

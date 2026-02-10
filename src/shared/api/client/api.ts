@@ -10,6 +10,6 @@ export const api = createApi({
     baseUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     credentials: 'include', // Include cookies
   }),
-  tagTypes: ['User', 'Auth'],
+  tagTypes: ['User', 'Auth', 'Match', 'Discover'],
   endpoints: () => ({}),
 });

@@ -55,8 +55,7 @@ const getErrorMessage = (error: unknown): string => {
         }
 
         const nestedMessage =
-            (error as { error?: string }).error ??
-            (error as { message?: string }).message
+            (error as { error?: string }).error ?? (error as { message?: string }).message
 
         if (typeof nestedMessage === 'string' && nestedMessage.trim()) {
             return nestedMessage
@@ -108,7 +107,10 @@ function CommunityActivityList({ items }: { items: CommunityActivityItem[] }) {
                 const Icon = meta.icon
 
                 return (
-                    <li key={`${item.action}-${item.id}`} className="rounded-xl border border-border bg-card p-4">
+                    <li
+                        key={`${item.action}-${item.id}`}
+                        className="rounded-xl border border-border bg-card p-4"
+                    >
                         <div className="flex items-start gap-3">
                             <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                                 <Icon className="size-4" />
@@ -118,7 +120,11 @@ function CommunityActivityList({ items }: { items: CommunityActivityItem[] }) {
                                 <div className="flex flex-wrap items-center gap-2">
                                     <p className="text-sm font-semibold">{item.username}</p>
                                     <Badge variant="outline">{meta.label}</Badge>
-                                    {item.gender ? <Badge variant="secondary">{renderGender(item.gender)}</Badge> : null}
+                                    {item.gender ? (
+                                        <Badge variant="secondary">
+                                            {renderGender(item.gender)}
+                                        </Badge>
+                                    ) : null}
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -206,7 +212,7 @@ export function DashboardPage() {
     const recentVisitorsQuery = useGetRecentVisitorsQuery()
 
     return (
-        <section className="container mx-auto px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        <section className="container mx-auto px-4 py-8 sm:px-6 sm:pb-12 lg:px-8">
             <div className="mx-auto w-full max-w-5xl">
                 <Card>
                     <CardHeader>
@@ -265,7 +271,9 @@ export function DashboardPage() {
                                 {recentVisitorsQuery.isLoading ? (
                                     <LoadingState message="Loading recent visitors..." />
                                 ) : recentVisitorsQuery.error ? (
-                                    <ErrorState message={getErrorMessage(recentVisitorsQuery.error)} />
+                                    <ErrorState
+                                        message={getErrorMessage(recentVisitorsQuery.error)}
+                                    />
                                 ) : recentVisitorsQuery.data?.items?.length ? (
                                     <MemberList
                                         items={recentVisitorsQuery.data.items}
