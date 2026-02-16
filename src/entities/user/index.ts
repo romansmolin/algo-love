@@ -1,5 +1,3 @@
-// User UI
-export { UserMenu } from './ui/user-menu'
 export {
     useGetCurrentUserQuery,
     useGetUserProfileQuery,

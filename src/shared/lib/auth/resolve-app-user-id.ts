@@ -16,7 +16,7 @@ const ensureShadowUser = async (datingUserId: string): Promise<string> => {
         create: {
             id: userId,
             name: `Dating User ${datingUserId}`,
-            email: `dating-user-${datingUserId}@pairly.local`,
+            email: `dating-user-${datingUserId}@pairengine.local`,
             emailVerified: false,
             image: null,
         },

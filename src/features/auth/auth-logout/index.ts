@@ -1,1 +1,1 @@
-export { LogoutButton } from './ui/logout-button'
+export { useLogoutMutation } from './api/client/endpoints'

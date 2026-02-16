@@ -1,23 +1,9 @@
-import * as PrismaClientModule from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
 
-type PrismaClientConstructor = (typeof PrismaClientModule) extends { PrismaClient: infer T }
-    ? T extends new (...args: any[]) => any
-        ? T
-        : new (...args: any[]) => any
-    : new (...args: any[]) => any
-
-const PrismaClient = (PrismaClientModule as unknown as { PrismaClient?: PrismaClientConstructor }).PrismaClient
-
-if (!PrismaClient) {
-    throw new Error(
-        'PrismaClient export was not found in @prisma/client. Ensure `prisma generate` runs during install/build.'
-    )
-}
-
 const globalForPrisma = globalThis as unknown as {
-    prisma: InstanceType<PrismaClientConstructor> | undefined
+    prisma: PrismaClient | undefined
     prismaPool: Pool | undefined
 }
 
