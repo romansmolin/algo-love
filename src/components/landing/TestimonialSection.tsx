@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { Quote } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import { Card, CardContent, CardFooter } from '@/shared/ui/card'
@@ -36,7 +37,14 @@ export function TestimonialSection() {
 
                     <Reveal delayMs={120}>
                         <div className="relative h-[300px] overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-100 via-[var(--accent-warm)] to-[color:rgb(255_166_166_/_0.5)] sm:h-[360px]">
-                            <div className="absolute inset-5 rounded-[1.4rem] border border-white/70 bg-white/40 backdrop-blur-sm" />
+                            <Image
+                                src="/landing-images/3.png"
+                                alt="Happy couple using AlgoLove"
+                                fill
+                                sizes="(max-width: 1024px) 100vw, 560px"
+                                className="object-cover"
+                            />
+                            <div className="absolute inset-5 rounded-[1.4rem] border border-white/45 bg-white/10 backdrop-blur-[1px]" />
                             <div className="absolute bottom-6 left-6 rounded-full bg-white/80 px-4 py-2 text-xs font-medium text-slate-600">
                                 Compatibility over chaos
                             </div>

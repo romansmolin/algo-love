@@ -109,10 +109,18 @@ export class HandlePaymentWebhookUseCase {
 
             const user = await this.userRepo.findById(transaction.userId)
             if (user?.email) {
-                await sendPaymentSuccessEmail({
-                    email: user.email,
-                    credits: transaction.amount,
-                })
+                try {
+                    await sendPaymentSuccessEmail({
+                        email: user.email,
+                        credits: transaction.amount,
+                    })
+                } catch (error) {
+                    console.error('[HandlePaymentWebhookUseCase] Failed to send payment success email', {
+                        userId: transaction.userId,
+                        paymentTokenId,
+                        error,
+                    })
+                }
             }
 
             return { paymentToken, transaction: { ...transaction, status: 'SUCCESSFUL' } }

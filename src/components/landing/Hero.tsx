@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { Heart, MessageCircleMore, Sparkles } from 'lucide-react'
 import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
@@ -45,7 +46,15 @@ export function Hero() {
                                     </Badge>
                                 </div>
 
-                                <div className="h-44 rounded-2xl border border-white/15 bg-gradient-to-br from-[color:rgb(255_237_199_/_0.35)] via-white/5 to-[color:rgb(255_166_166_/_0.32)]" />
+                                <div className="relative h-44 overflow-hidden rounded-2xl border border-white/15 bg-gradient-to-br from-[color:rgb(255_237_199_/_0.35)] via-white/5 to-[color:rgb(255_166_166_/_0.32)]">
+                                    <Image
+                                        src="/landing-images/1.png"
+                                        alt="Match card profile preview"
+                                        fill
+                                        sizes="(max-width: 1024px) 100vw, 360px"
+                                        className="object-cover"
+                                    />
+                                </div>
 
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between text-sm">

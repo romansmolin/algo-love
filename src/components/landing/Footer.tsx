@@ -1,4 +1,5 @@
 import { Instagram, Linkedin, Twitter } from 'lucide-react'
+import { FooterBankingInfo } from '@/components/landing/FooterBankingInfo'
 import { Separator } from '@/shared/ui/separator'
 
 const nav = [
@@ -48,6 +49,10 @@ export function Footer() {
                 </div>
 
                 <Separator className="my-6" />
+
+                <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <FooterBankingInfo className="h-auto w-full" />
+                </div>
 
                 <div className="flex flex-col gap-3 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
                     <p>© {new Date().getFullYear()} AlgoLove. All rights reserved.</p>

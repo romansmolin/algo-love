@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { ArrowUpRight } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import { Card, CardContent } from '@/shared/ui/card'
@@ -41,9 +42,16 @@ export function SplitSection() {
 
                 <Reveal delayMs={140}>
                     <div className="relative h-[380px] overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-[var(--accent-warm)] via-[#fff8ef] to-[color:rgb(255_166_166_/_0.46)] shadow-[0_30px_80px_-50px_rgba(15,23,42,0.45)] sm:h-[460px]">
+                        <Image
+                            src="/landing-images/2.png"
+                            alt="AlgoLove compatibility visual"
+                            fill
+                            sizes="(max-width: 1024px) 100vw, 720px"
+                            className="object-cover"
+                        />
                         <div className="absolute -right-12 top-8 h-44 w-44 rounded-full bg-white/45 blur-2xl" />
                         <div className="absolute -left-10 bottom-10 h-56 w-56 rounded-full bg-[color:rgb(255_112_112_/_0.52)] blur-2xl" />
-                        <div className="absolute inset-6 rounded-[1.4rem] border border-white/50 bg-white/35 backdrop-blur-sm" />
+                        <div className="absolute inset-6 rounded-[1.4rem] border border-white/35 bg-white/10 backdrop-blur-[1px]" />
                     </div>
                 </Reveal>
             </div>

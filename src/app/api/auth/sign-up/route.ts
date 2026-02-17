@@ -6,6 +6,7 @@ import { setSessionCookies } from '@/shared/lib/auth/session-cookies'
 import { AppError, FieldError } from '@/shared/errors/app-error'
 import { asyncHandler } from '@/shared/http/async-handler'
 import { GENDER_VALUES, LOOKING_FOR_VALUES } from '@/shared/lib/auth/external-auth.types'
+import { sendWelcomeEmail } from '@/shared/lib/email/mailer'
 
 const signUpBodySchema = z.object({
     username: z.string().trim().min(1, 'Username is required'),
@@ -75,6 +76,18 @@ export const POST = asyncHandler(async (request: NextRequest) => {
         userId: result.userId,
         lang: result.lang,
     })
+
+    try {
+        await sendWelcomeEmail({
+            email: parsed.data.email,
+            username: parsed.data.username,
+        })
+    } catch (error) {
+        console.error('[AuthSignUp] Failed to send welcome email', {
+            userId: result.userId,
+            error,
+        })
+    }
 
     return response
 })
