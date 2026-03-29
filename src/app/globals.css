@@ -31,6 +31,10 @@ main {
     min-height: 100vh;
 }
 
+.font-heading {
+    font-family: var(--font-heading), 'Georgia', serif;
+}
+
 a {
     text-decoration: none;
 }

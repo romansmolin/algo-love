@@ -130,16 +130,13 @@ model credit_transaction {
   amount         Int
   status         CreditTransactionStatus @default(SUCCESSFUL)
   reason         String?
-  generationId   String?
   paymentTokenId String?                 @unique
-  pdfInsightId   String?
   createdAt      DateTime                @default(now())
 
   user         user           @relation(fields: [userId], references: [id], onDelete: Cascade)
   paymentToken payment_token? @relation(fields: [paymentTokenId], references: [id], onDelete: SetNull)
 
-  @@index([userId])
-  @@index([createdAt])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model gift_catalog {

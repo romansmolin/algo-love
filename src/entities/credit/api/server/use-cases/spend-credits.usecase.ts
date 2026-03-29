@@ -7,8 +7,6 @@ export interface SpendCreditsInput {
     userId: string
     amount: number
     reason: string
-    pdfInsightId?: string
-    generationId?: string
 }
 
 /**
@@ -43,8 +41,6 @@ export class SpendCreditsUseCase {
             amount: -input.amount, // Negative for spending
             status: 'SUCCESSFUL',
             reason: input.reason,
-            pdfInsightId: input.pdfInsightId,
-            generationId: input.generationId,
         })
 
         return transaction

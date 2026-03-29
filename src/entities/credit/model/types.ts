@@ -20,9 +20,7 @@ export interface CreditTransaction {
     amount: number
     status: CreditTransactionStatus
     reason: string | null
-    generationId: string | null
     paymentTokenId: string | null
-    pdfInsightId: string | null
     createdAt: Date
 }
 
@@ -32,9 +30,7 @@ export interface CreateTransactionInput {
     amount: number
     status?: CreditTransactionStatus
     reason?: string
-    generationId?: string
     paymentTokenId?: string
-    pdfInsightId?: string
 }
 
 export type CreditPricingMode = 'preset' | 'custom'

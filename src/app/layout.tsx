@@ -1,6 +1,13 @@
 import type { Metadata } from 'next'
+import { Playfair_Display } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
+
+const playfair = Playfair_Display({
+    subsets: ['latin'],
+    variable: '--font-heading',
+    display: 'swap',
+})
 
 export const metadata: Metadata = {
     title: 'AlgoLove | Compatibility-first dating',
@@ -15,7 +22,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body className="antialiased">
+            <body className={`${playfair.variable} antialiased`}>
                 <Providers>
                     <main>{children}</main>
                 </Providers>

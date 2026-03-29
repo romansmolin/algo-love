@@ -1,3 +1,5 @@
+'use client'
+
 import {
     CalendarCheck2,
     MessageCircleHeart,
@@ -8,7 +10,7 @@ import {
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
 import { Reveal } from '@/components/landing/magic/Reveal'
-import { ShimmerBorder } from '@/components/landing/magic/ShimmerBorder'
+import ElectricBorder from '@/shared/components/ElectricBorder'
 
 const features = [
     {
@@ -49,12 +51,12 @@ export function FeaturesGrid() {
             <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
                 <Reveal>
                     <div className="mx-auto max-w-3xl text-center">
-                        <h2 className="text-3xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl">
+                        <h2 className="font-heading text-3xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl">
                             Dating should feel intentional, not endless
                         </h2>
                         <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base">
-                            Every part of AlgoLove is built to help you find compatibility faster and reduce random
-                            swipe fatigue.
+                            Every part of AlgoLove is built to help you find compatibility faster
+                            and reduce random swipe fatigue.
                         </p>
                     </div>
                 </Reveal>
@@ -65,23 +67,29 @@ export function FeaturesGrid() {
 
                         return (
                             <Reveal key={feature.title} delayMs={60 * index}>
-                                <ShimmerBorder
+                                <ElectricBorder
+                                    color="#eb4c4c"
+                                    speed={1.2}
+                                    chaos={0.08}
+                                    borderRadius={16}
                                     className="h-full"
-                                    borderClassName="via-[color:rgb(235_76_76_/_0.52)]"
-                                    contentClassName="h-full rounded-[15px] bg-white"
                                 >
-                                    <Card className="h-full border-none shadow-none">
+                                    <Card className="h-full flex-1 rounded-[inherit] border-none bg-white shadow-none">
                                         <CardHeader className="pb-3">
-                                            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[color:rgb(255_166_166_/_0.35)] text-[var(--accent)]">
+                                            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[rgb(255_166_166/0.35)] text-(--accent)">
                                                 <Icon className="h-4 w-4" />
                                             </span>
                                         </CardHeader>
                                         <CardContent>
-                                            <CardTitle className="text-base">{feature.title}</CardTitle>
-                                            <p className="mt-2 text-sm leading-relaxed text-slate-600">{feature.copy}</p>
+                                            <CardTitle className="text-base">
+                                                {feature.title}
+                                            </CardTitle>
+                                            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                                                {feature.copy}
+                                            </p>
                                         </CardContent>
                                     </Card>
-                                </ShimmerBorder>
+                                </ElectricBorder>
                             </Reveal>
                         )
                     })}

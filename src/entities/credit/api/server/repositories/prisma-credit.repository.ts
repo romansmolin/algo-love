@@ -51,9 +51,7 @@ export class PrismaCreditRepository implements ICreditRepository {
                 amount: input.amount,
                 status: input.status ?? 'SUCCESSFUL',
                 reason: input.reason || null,
-                generationId: input.generationId || null,
                 paymentTokenId: input.paymentTokenId || null,
-                pdfInsightId: input.pdfInsightId || null,
                 createdAt: new Date(),
             },
         })
@@ -113,9 +111,7 @@ export class PrismaCreditRepository implements ICreditRepository {
             amount: data.amount,
             status: data.status,
             reason: data.reason,
-            generationId: data.generationId,
             paymentTokenId: data.paymentTokenId,
-            pdfInsightId: data.pdfInsightId,
             createdAt: data.createdAt,
         }
     }

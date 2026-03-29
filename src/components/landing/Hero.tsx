@@ -1,3 +1,5 @@
+'use client'
+
 import Image from 'next/image'
 import { Heart, MessageCircleMore, Sparkles } from 'lucide-react'
 import { Badge } from '@/shared/ui/badge'
@@ -5,6 +7,8 @@ import { Button } from '@/shared/ui/button'
 import { Card, CardContent } from '@/shared/ui/card'
 import { Reveal } from '@/components/landing/magic/Reveal'
 import { Spotlight } from '@/components/landing/magic/Spotlight'
+import RotatingText from '@/shared/components/RotatingText'
+import CountUp from '@/shared/components/CountUp'
 
 export function Hero() {
     return (
@@ -16,8 +20,14 @@ export function Hero() {
                 <div className="relative grid gap-8 lg:grid-cols-2 lg:gap-10">
                     <Reveal className="space-y-6">
                         <Badge className="bg-white/15 text-white ring-1 ring-white/20">Compatibility-first dating</Badge>
-                        <h1 className="max-w-xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl lg:text-[3.6rem]">
-                            Dating without the guessing.
+                        <h1 className="font-heading max-w-xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl lg:text-[3.6rem]">
+                            Dating without the{' '}
+                            <RotatingText
+                                texts={['guessing.', 'swiping.', 'ghosting.', 'small talk.']}
+                                mainClassName="inline-flex overflow-hidden text-[var(--accent-warm)] py-1 px-2 rounded-lg bg-white/10"
+                                staggerFrom="last"
+                                rotationInterval={2500}
+                            />
                         </h1>
                         <p className="max-w-lg text-base text-slate-200 sm:text-lg">
                             AlgoLove matches you using compatibility scoring so you meet people who actually fit your
@@ -93,15 +103,15 @@ export function Hero() {
                     <div className="w-full rounded-2xl border border-slate-200/80 bg-white p-4 text-slate-900 shadow-xl lg:w-[420px]">
                         <div className="grid grid-cols-3 gap-3 text-center">
                             <div>
-                                <p className="text-2xl font-semibold">92%</p>
+                                <p className="text-2xl font-semibold"><CountUp to={92} separator="," />%</p>
                                 <p className="mt-1 text-xs text-slate-500">match satisfaction</p>
                             </div>
                             <div>
-                                <p className="text-2xl font-semibold">12K</p>
+                                <p className="text-2xl font-semibold"><CountUp to={12} />K</p>
                                 <p className="mt-1 text-xs text-slate-500">users joined</p>
                             </div>
                             <div>
-                                <p className="text-2xl font-semibold">3 min</p>
+                                <p className="text-2xl font-semibold"><CountUp to={3} /> min</p>
                                 <p className="mt-1 text-xs text-slate-500">avg daily usage</p>
                             </div>
                         </div>

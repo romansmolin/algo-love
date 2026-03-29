@@ -9,7 +9,7 @@ export function TestimonialSection() {
         <section className="py-16 sm:py-20">
             <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
                 <Reveal>
-                    <h2 className="mx-auto max-w-2xl text-center text-3xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl">
+                    <h2 className="font-heading mx-auto max-w-2xl text-center text-3xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl">
                         People are tired of swiping
                     </h2>
                 </Reveal>

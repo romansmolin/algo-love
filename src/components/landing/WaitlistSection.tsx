@@ -28,7 +28,7 @@ export function WaitlistSection() {
                 <div id="faq" className="scroll-mt-24">
                     <Reveal>
                         <div className="max-w-2xl">
-                            <h2 className="text-3xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl">
+                            <h2 className="font-heading text-3xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl">
                                 Questions before you join?
                             </h2>
                             <p className="mt-3 text-sm text-slate-600 sm:text-base">

@@ -16,7 +16,7 @@ export function SplitSection() {
         <section id="how-it-works" className="py-16 sm:py-20">
             <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.95fr_1.2fr] lg:items-start lg:px-8">
                 <Reveal className="space-y-6">
-                    <h2 className="max-w-lg text-3xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl">
+                    <h2 className="font-heading max-w-lg text-3xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl">
                         Real connections, built differently
                     </h2>
                     <p className="max-w-md text-sm leading-relaxed text-slate-600 sm:text-base">

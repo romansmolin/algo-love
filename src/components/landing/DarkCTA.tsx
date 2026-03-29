@@ -1,7 +1,10 @@
+'use client'
+
 import { CheckCircle2 } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import { Reveal } from '@/components/landing/magic/Reveal'
 import { Spotlight } from '@/components/landing/magic/Spotlight'
+import GradientText from '@/shared/components/GradientText'
 
 const points = ['Compatibility-first matching', 'Privacy-first profiles', 'Curated daily matches']
 
@@ -16,8 +19,14 @@ export function DarkCTA() {
 
                     <Reveal className="relative grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center">
                         <div>
-                            <h2 className="text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl">
-                                It&apos;s time to date with intention.
+                            <h2 className="font-heading text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl">
+                                <GradientText
+                                    colors={['#ffa6a6', '#eb4c4c', '#ffedc7', '#ff7070', '#ffa6a6']}
+                                    animationSpeed={6}
+                                    className="inline"
+                                >
+                                    It&apos;s time to date with intention.
+                                </GradientText>
                             </h2>
                             <ul className="mt-6 space-y-3">
                                 {points.map((point) => (

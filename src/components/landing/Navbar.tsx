@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Menu, X } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
+import { Logo } from '@/components/landing/Logo'
 
 const links = [
     { href: '#features', label: 'Features' },
@@ -18,9 +19,8 @@ export function Navbar() {
     return (
         <header className="sticky top-0 z-50 border-b border-white/20 bg-[color:rgba(246,247,251,0.82)] backdrop-blur-xl">
             <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                <Link href="#" className="inline-flex items-center gap-2">
-                    <span className="inline-block h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
-                    <span className="text-lg font-semibold tracking-tight text-slate-900">AlgoLove</span>
+                <Link href="#">
+                    <Logo />
                 </Link>
 
                 <nav className="hidden items-center gap-8 md:flex">
