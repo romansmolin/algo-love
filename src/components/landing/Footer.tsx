@@ -47,6 +47,9 @@ export function Footer() {
                         <p className="text-sm leading-relaxed text-slate-500">
                             Compatibility-first dating for intentional singles. Meet people who actually fit your life.
                         </p>
+                        <div className="mt-2 rounded-lg border border-slate-100 bg-slate-50/80 px-2 py-1.5">
+                            <FooterBankingInfo className="h-auto max-h-6 w-full opacity-50" />
+                        </div>
                     </div>
 
                     <div className="flex flex-col gap-6 sm:flex-row sm:gap-16">
@@ -86,9 +89,6 @@ export function Footer() {
                     </div>
                 </div>
 
-                <div className="mt-8 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2">
-                    <FooterBankingInfo className="h-auto max-h-8 w-full opacity-60" />
-                </div>
             </div>
 
             <div className="mt-3 px-4 text-center text-xs text-slate-400">
