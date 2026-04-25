@@ -13,6 +13,7 @@ export interface MatchCandidate {
 
 export interface DiscoverMatchesResponse {
     items: MatchCandidate[]
+    nextCursor: string | null
     page?: number
     totalPages?: number
     total?: number
@@ -23,7 +24,7 @@ export interface MatchListResponse {
     total: number
 }
 
-export type MatchAction = 'like' | 'dislike'
+export type MatchAction = 'like' | 'dislike' | 'skip'
 
 export interface MatchActionRequest {
     userId: number
@@ -33,4 +34,18 @@ export interface MatchActionRequest {
 export interface MatchActionResponse {
     result?: string
     isMatch?: boolean
+}
+
+export type InteractionDirection = 'outgoing' | 'incoming'
+
+export interface InteractionItem {
+    datingId: number
+    createdAt: string
+    profile: MatchCandidate | null
+}
+
+export interface InteractionsResponse {
+    direction: InteractionDirection
+    items: InteractionItem[]
+    nextCursor: string | null
 }

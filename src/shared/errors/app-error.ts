@@ -48,4 +48,16 @@ export class AppError extends Error {
     static internalError(message = 'Internal server error'): AppError {
         return new AppError(message, ErrorCode.INTERNAL_ERROR, 500, undefined, false)
     }
+
+    static aiLockedError(message = 'AI features are locked'): AppError {
+        return new AppError(message, ErrorCode.AI_LOCKED, 403)
+    }
+
+    static paymentRequiredError(message = 'Insufficient credits'): AppError {
+        return new AppError(message, ErrorCode.PAYMENT_REQUIRED, 402)
+    }
+
+    static rateLimitedError(message = 'Rate limit exceeded'): AppError {
+        return new AppError(message, ErrorCode.RATE_LIMITED, 429)
+    }
 }

@@ -93,11 +93,6 @@ export class PurchaseCreditsUseCase {
     async execute(userId: string, input: PurchaseCreditsInput) {
         const pricing = resolvePricing(input)
 
-        const backendUrl = process.env.BACKEND_URL
-        if (!backendUrl) {
-            throw AppError.internalError('BACKEND_URL is not configured')
-        }
-
         if (pricing.amountCents > Number.MAX_SAFE_INTEGER) {
             throw AppError.validationError('amountEur is too large')
         }
@@ -120,7 +115,6 @@ export class PurchaseCreditsUseCase {
             amountCents: pricing.amountCents,
             currency: DEFAULT_CURRENCY,
             description,
-            returnUrl: `${backendUrl}/api/payments/secure-processor/return`,
             metadata: {
                 reference_id: `credits:${pricing.grantedCredits}`,
                 amount_eur: pricing.amountEur.toFixed(2),

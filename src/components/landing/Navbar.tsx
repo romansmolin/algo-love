@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Menu, X } from 'lucide-react'
+import { LogIn, Menu, UserPlus, X } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import { Logo } from '@/components/landing/Logo'
 
@@ -31,15 +31,33 @@ export function Navbar() {
                     ))}
                 </nav>
 
-                <div className="hidden md:block">
+                <div className="hidden items-center gap-2 md:flex">
+                    <Button asChild variant="outline">
+                        <a href="/auth/sign-in">
+                            <LogIn className="h-4 w-4" />
+                            Log in
+                        </a>
+                    </Button>
                     <Button asChild>
-                        <a href="/auth/sign-in">Create account</a>
+                        <a href="/auth/sign-up">
+                            <UserPlus className="h-4 w-4" />
+                            Create account
+                        </a>
                     </Button>
                 </div>
 
                 <div className="flex items-center gap-2 md:hidden">
+                    <Button asChild variant="outline" size="sm">
+                        <a href="/auth/sign-in">
+                            <LogIn className="h-4 w-4" />
+                            Log in
+                        </a>
+                    </Button>
                     <Button asChild size="sm">
-                        <a href="/auth/sign-in">Sign up</a>
+                        <a href="/auth/sign-up">
+                            <UserPlus className="h-4 w-4" />
+                            Sign up
+                        </a>
                     </Button>
                     <Button
                         variant="outline"

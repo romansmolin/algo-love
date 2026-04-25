@@ -28,6 +28,7 @@ export class PrismaPaymentTokenRepository implements IPaymentTokenRepository {
                 status: input.status,
                 gatewayUid: input.gatewayUid ?? null,
                 gatewayToken: input.gatewayToken ?? null,
+                trackingId: input.trackingId,
                 rawPayload: toJsonValue(input.rawPayload),
                 amountCents: input.amountCents,
                 currency: input.currency,
@@ -47,6 +48,7 @@ export class PrismaPaymentTokenRepository implements IPaymentTokenRepository {
                 gatewayUid: input.gatewayUid ?? undefined,
                 gatewayToken: input.gatewayToken ?? undefined,
                 rawPayload: toJsonValue(input.rawPayload),
+                errorMessage: input.errorMessage ?? undefined,
                 updatedAt: new Date(),
             },
         })
@@ -63,8 +65,24 @@ export class PrismaPaymentTokenRepository implements IPaymentTokenRepository {
     }
 
     async findByGatewayUid(gatewayUid: string): Promise<PaymentToken | null> {
-        const token = await prisma.payment_token.findFirst({
+        const token = await prisma.payment_token.findUnique({
             where: { gatewayUid },
+        })
+
+        return token ? this.mapToPaymentToken(token) : null
+    }
+
+    async findByGatewayToken(gatewayToken: string): Promise<PaymentToken | null> {
+        const token = await prisma.payment_token.findUnique({
+            where: { gatewayToken },
+        })
+
+        return token ? this.mapToPaymentToken(token) : null
+    }
+
+    async findByTrackingId(trackingId: string): Promise<PaymentToken | null> {
+        const token = await prisma.payment_token.findUnique({
+            where: { trackingId },
         })
 
         return token ? this.mapToPaymentToken(token) : null
@@ -77,7 +95,9 @@ export class PrismaPaymentTokenRepository implements IPaymentTokenRepository {
             status: data.status,
             gatewayUid: data.gatewayUid,
             gatewayToken: data.gatewayToken,
+            trackingId: data.trackingId,
             rawPayload: data.rawPayload,
+            errorMessage: data.errorMessage,
             amountCents: data.amountCents,
             currency: data.currency,
             createdAt: data.createdAt,

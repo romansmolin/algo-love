@@ -13,7 +13,9 @@ export interface PaymentToken {
     status: PaymentTokenStatus
     gatewayUid: string | null
     gatewayToken: string | null
+    trackingId: string | null
     rawPayload: unknown | null
+    errorMessage: string | null
     amountCents: number
     currency: string
     createdAt: Date
@@ -25,6 +27,7 @@ export interface CreatePaymentTokenInput {
     status: PaymentTokenStatus
     amountCents: number
     currency: string
+    trackingId: string
     gatewayUid?: string | null
     gatewayToken?: string | null
     rawPayload?: unknown | null
@@ -35,4 +38,5 @@ export interface UpdatePaymentTokenInput {
     gatewayUid?: string | null
     gatewayToken?: string | null
     rawPayload?: unknown | null
+    errorMessage?: string | null
 }

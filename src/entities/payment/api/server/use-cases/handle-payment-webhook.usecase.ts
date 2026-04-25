@@ -1,41 +1,78 @@
 import 'server-only'
 import { inject, injectable } from 'inversify'
 import crypto from 'node:crypto'
+import type { Prisma } from '@prisma/client'
+import { prisma } from '@/shared/lib/database/prisma'
 import type { IPaymentTokenRepository } from '../interfaces/payment-token-repository.interface'
 import type { ICreditRepository } from '@/entities/credit/api/server/interfaces/credit-repository.interface'
 import { AppError } from '@/shared/errors/app-error'
-import type { PaymentTokenStatus } from '../../../model/types'
-import { mapGatewayStatus } from './update-payment-from-return.usecase'
+import type { PaymentToken, PaymentTokenStatus } from '../../../model/types'
 import type { IUserRepository } from '@/entities/user/api/server/interfaces/user-repository.interface'
 import { DI_TOKENS } from '@/shared/lib/di/tokens'
 import { sendPaymentSuccessEmail } from '@/shared/lib/email/mailer'
-
-const SECURE_PROCESSOR_PUBLIC_KEY = process.env.SECURE_PROCESSOR_PUBLIC_KEY
+import { secureProcessorConfig } from '@/shared/config/secure-processor.config'
+import { normalizeGatewayStatus, extractCheckoutDetails } from './checkout-payload'
 
 type HandleWebhookInput = {
-    rawBody: string
-    signature?: string | null
+    rawBody: Buffer
+    authorization?: string | null
+    contentSignature?: string | null
 }
 
-type WebhookPayload = {
-    status?: string
-    uid?: string
-    payment_token_id?: string
-    metadata?: {
-        payment_token_id?: string
-        user_id?: string
+const verifyBasicAuth = (authorization?: string | null) => {
+    if (!authorization?.startsWith('Basic ')) {
+        throw AppError.authorizationError('Webhook authorization header is missing')
+    }
+
+    const provided = Buffer.from(authorization.slice('Basic '.length).trim())
+    const expected = Buffer.from(secureProcessorConfig.authHeader.slice('Basic '.length))
+
+    if (provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) {
+        throw AppError.authorizationError('Webhook authorization failed')
     }
 }
 
-const verifySignature = (payload: string, signature: string, publicKey: string): boolean => {
-    const verifier = crypto.createVerify('RSA-SHA256')
-    verifier.update(payload)
-    verifier.end()
-    return verifier.verify(publicKey, signature, 'base64')
+const extractSignature = (header: string): string => {
+    const trimmed = header.trim()
+    if (trimmed.includes('=')) {
+        const [, value] = trimmed.split('=')
+        if (value) return value
+    }
+    return trimmed
+}
+
+const verifySignature = (rawBody: Buffer, header?: string | null) => {
+    if (!header) {
+        throw AppError.authorizationError('Content-Signature header is missing')
+    }
+
+    const signature = extractSignature(header)
+    const isValid = crypto.verify(
+        'RSA-SHA256',
+        rawBody,
+        secureProcessorConfig.publicKey,
+        Buffer.from(signature, 'base64'),
+    )
+
+    if (!isValid) {
+        throw AppError.authorizationError('Invalid webhook signature')
+    }
 }
 
 const shouldFailTransaction = (status: PaymentTokenStatus) => {
     return ['FAILED', 'DECLINED', 'EXPIRED', 'ERROR'].includes(status)
+}
+
+const asPayloadObject = (value: unknown): Record<string, unknown> => {
+    return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+const asString = (value: unknown): string | null => {
+    return typeof value === 'string' ? value : null
+}
+
+const toJsonInput = (value: unknown): Prisma.InputJsonValue | undefined => {
+    return value === undefined || value === null ? undefined : value as Prisma.InputJsonValue
 }
 
 @injectable()
@@ -47,90 +84,164 @@ export class HandlePaymentWebhookUseCase {
     ) {}
 
     async execute(input: HandleWebhookInput) {
-        if (SECURE_PROCESSOR_PUBLIC_KEY) {
-            if (!input.signature) {
-                throw AppError.authorizationError('Missing webhook signature')
-            }
+        verifyBasicAuth(input.authorization)
+        verifySignature(input.rawBody, input.contentSignature)
 
-            const publicKey = SECURE_PROCESSOR_PUBLIC_KEY.replace(/\\n/g, '\n')
-            const isValid = verifySignature(
-                input.rawBody,
-                input.signature,
-                publicKey,
-            )
-
-            if (!isValid) {
-                throw AppError.authorizationError('Invalid webhook signature')
-            }
-        }
-
-        let payload: WebhookPayload
-
+        let payload: unknown
         try {
-            payload = JSON.parse(input.rawBody) as WebhookPayload
+            payload = JSON.parse(input.rawBody.toString('utf-8'))
         } catch {
-            throw AppError.validationError('Invalid webhook payload')
+            throw AppError.validationError('Webhook payload is not valid JSON')
         }
 
-        const paymentTokenId = payload.payment_token_id ?? payload.metadata?.payment_token_id
+        const details = extractCheckoutDetails(payload)
+        const status = normalizeGatewayStatus(details.status)
 
-        if (!paymentTokenId) {
-            throw AppError.validationError('Missing payment token id')
-        }
+        const paymentToken = await this.resolveRecord(details, payload)
 
-        const status = mapGatewayStatus(payload.status)
+        this.ensurePayloadConsistency(paymentToken, details)
 
-        const existingToken = await this.paymentTokenRepo.findById(paymentTokenId)
-        if (!existingToken) {
-            throw AppError.notFoundError('Payment token not found')
-        }
-
-        const paymentToken = await this.paymentTokenRepo.update(paymentTokenId, {
-            status,
-            gatewayUid: payload.uid ?? null,
+        return this.applyStatus(paymentToken, status, {
+            gatewayUid: details.uid ?? paymentToken.gatewayUid,
             rawPayload: payload,
         })
+    }
 
-        const transaction = await this.creditRepo.findTransactionByPaymentTokenId(paymentTokenId)
-        if (!transaction) {
-            throw AppError.notFoundError('Credit transaction not found')
+    private async resolveRecord(
+        details: ReturnType<typeof extractCheckoutDetails>,
+        payload: unknown,
+    ): Promise<PaymentToken> {
+        const payloadObject = asPayloadObject(payload)
+        const metadata = asPayloadObject(payloadObject.metadata)
+        const checkout = asPayloadObject(payloadObject.checkout)
+        const checkoutMetadata = asPayloadObject(checkout.metadata)
+        const internalId =
+            asString(payloadObject.payment_token_id) ??
+            asString(metadata.payment_token_id) ??
+            asString(checkoutMetadata.payment_token_id)
+
+        if (internalId) {
+            const byId = await this.paymentTokenRepo.findById(internalId)
+            if (byId) return byId
         }
 
-        if (status === 'SUCCESSFUL') {
-            if (transaction.status === 'SUCCESSFUL') {
-                return { paymentToken, transaction }
+        if (details.gatewayToken) {
+            const byGatewayToken = await this.paymentTokenRepo.findByGatewayToken(details.gatewayToken)
+            if (byGatewayToken) return byGatewayToken
+        }
+
+        if (details.trackingId) {
+            const byTracking = await this.paymentTokenRepo.findByTrackingId(details.trackingId)
+            if (byTracking) return byTracking
+        }
+
+        if (details.uid) {
+            const byUid = await this.paymentTokenRepo.findByGatewayUid(details.uid)
+            if (byUid) return byUid
+        }
+
+        throw AppError.notFoundError('Payment record not found for webhook')
+    }
+
+    private ensurePayloadConsistency(
+        record: PaymentToken,
+        details: ReturnType<typeof extractCheckoutDetails>,
+    ) {
+        const mismatches: string[] = []
+        if (details.amountCents !== null && Number(details.amountCents) !== Number(record.amountCents)) {
+            mismatches.push('amount')
+        }
+        if (details.currency && details.currency !== record.currency) {
+            mismatches.push('currency')
+        }
+        if (mismatches.length > 0) {
+            const message = `Checkout data mismatch: ${mismatches.join(', ')}`
+            this.paymentTokenRepo
+                .update(record.id, {
+                    status: 'ERROR',
+                    errorMessage: message,
+                    rawPayload: details.rawPayload,
+                })
+                .catch(() => {})
+            throw AppError.validationError(message)
+        }
+    }
+
+    private async applyStatus(
+        record: PaymentToken,
+        nextStatus: PaymentTokenStatus,
+        updates: { gatewayUid?: string | null; rawPayload?: unknown },
+    ) {
+        return await prisma.$transaction(async (tx) => {
+            const shouldActivate = nextStatus === 'SUCCESSFUL' && record.status !== 'SUCCESSFUL'
+            const shouldFail = shouldFailTransaction(nextStatus) && record.status !== 'SUCCESSFUL'
+
+            await tx.payment_token.update({
+                where: { id: record.id },
+                data: {
+                    status: nextStatus,
+                    gatewayUid: updates.gatewayUid ?? undefined,
+                    rawPayload: toJsonInput(updates.rawPayload),
+                    updatedAt: new Date(),
+                },
+            })
+
+            const transaction = await tx.credit_transaction.findUnique({
+                where: { paymentTokenId: record.id },
+            })
+
+            if (!transaction) {
+                throw AppError.notFoundError('Credit transaction not found')
             }
 
-            const credits = await this.creditRepo.getOrCreateBalance(transaction.userId)
-            const newBalance = credits.balance + transaction.amount
-            await this.creditRepo.updateBalance(transaction.userId, newBalance)
+            if (shouldActivate) {
+                if (transaction.status === 'SUCCESSFUL') {
+                    return { paymentTokenId: record.id, transactionId: transaction.id, fulfilled: false }
+                }
 
-            await this.creditRepo.updateTransactionStatus(transaction.id, 'SUCCESSFUL')
+                const balanceRow = await tx.user_credits.upsert({
+                    where: { userId: transaction.userId },
+                    update: { balance: { increment: transaction.amount } },
+                    create: { userId: transaction.userId, balance: transaction.amount },
+                })
 
-            const user = await this.userRepo.findById(transaction.userId)
-            if (user?.email) {
-                try {
+                await tx.credit_transaction.update({
+                    where: { id: transaction.id },
+                    data: { status: 'SUCCESSFUL' },
+                })
+
+                return {
+                    paymentTokenId: record.id,
+                    transactionId: transaction.id,
+                    fulfilled: true,
+                    newBalance: balanceRow.balance,
+                    creditAmount: transaction.amount,
+                    userId: transaction.userId,
+                }
+            }
+
+            if (shouldFail) {
+                await tx.credit_transaction.update({
+                    where: { id: transaction.id },
+                    data: { status: 'FAILED' },
+                })
+            }
+
+            return { paymentTokenId: record.id, transactionId: transaction.id, fulfilled: false }
+        }).then(async (result) => {
+            if (result.fulfilled && result.userId) {
+                const user = await this.userRepo.findById(result.userId)
+                if (user?.email) {
                     await sendPaymentSuccessEmail({
                         email: user.email,
-                        credits: transaction.amount,
-                    })
-                } catch (error) {
-                    console.error('[HandlePaymentWebhookUseCase] Failed to send payment success email', {
-                        userId: transaction.userId,
-                        paymentTokenId,
-                        error,
+                        credits: result.creditAmount ?? 0,
+                    }).catch((error) => {
+                        console.error('[HandlePaymentWebhookUseCase] Failed to send success email', error)
                     })
                 }
             }
 
-            return { paymentToken, transaction: { ...transaction, status: 'SUCCESSFUL' } }
-        }
-
-        if (shouldFailTransaction(status) && transaction.status !== 'SUCCESSFUL') {
-            await this.creditRepo.updateTransactionStatus(transaction.id, 'FAILED')
-            return { paymentToken, transaction: { ...transaction, status: 'FAILED' } }
-        }
-
-        return { paymentToken, transaction }
+            return result
+        })
     }
 }

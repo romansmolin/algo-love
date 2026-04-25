@@ -29,6 +29,30 @@ enum TransactionType {
   adjustment
 }
 
+enum InteractionAction {
+  LIKE
+  DISLIKE
+  SKIP
+}
+
+enum InteractionSource {
+  FEED
+  PROFILE
+  BACKFILL
+}
+
+enum AiFeatureKey {
+  profile_analyzer
+  photo_spotlight
+  match_radar
+  bio_rewrite_studio
+}
+
+enum AiUnlockStatus {
+  active
+  expired
+}
+
 model user {
   id            String   @id @default(cuid())
   name          String
@@ -46,6 +70,12 @@ model user {
   paymentTokens payment_token[]
   sentGifts     gift_send[]
   giftInventory gift_inventory[]
+
+  matchInteractions match_interaction[]
+  conversations     conversation[]
+
+  aiAnalyses ai_analysis[]
+  aiUnlocks  ai_unlock[]
 }
 
 model session {
@@ -108,9 +138,11 @@ model payment_token {
   id           String             @id @default(cuid())
   userId       String
   status       PaymentTokenStatus
-  gatewayUid   String?
-  gatewayToken String?
+  gatewayUid   String?            @unique
+  gatewayToken String?            @unique
+  trackingId   String?            @unique
   rawPayload   Json?
+  errorMessage String?
   amountCents  Int
   currency     String
   createdAt    DateTime           @default(now())
@@ -120,7 +152,6 @@ model payment_token {
   transactions credit_transaction[]
 
   @@index([userId])
-  @@index([gatewayUid])
 }
 
 model credit_transaction {
@@ -184,4 +215,101 @@ model gift_inventory {
   @@unique([userId, giftId])
   @@index([userId, updatedAt])
   @@index([giftId])
+}
+
+model match_interaction {
+  id             String            @id @default(cuid())
+  userId         String
+  targetDatingId Int
+  action         InteractionAction
+  source         InteractionSource @default(FEED)
+  createdAt      DateTime          @default(now())
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetDatingId, action])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, targetDatingId])
+}
+
+model conversation {
+  id               String    @id @default(cuid())
+  userId           String
+  peerDatingId     Int
+  lastMessageAt    DateTime?
+  lastReadAt       DateTime?
+  lastSeenLegacyId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user     user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages message[]
+
+  @@unique([userId, peerDatingId])
+  @@index([userId, lastMessageAt(sort: Desc)])
+}
+
+model message {
+  id             String    @id @default(cuid())
+  conversationId String
+  legacyId       String?
+  senderDatingId Int
+  body           String
+  idempotencyKey String?
+  createdAt      DateTime  @default(now())
+  deliveredAt    DateTime?
+  readAt         DateTime?
+
+  conversation conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, legacyId])
+  @@unique([conversationId, idempotencyKey])
+  @@index([conversationId, createdAt])
+}
+
+model ai_analysis {
+  id         String       @id @default(cuid())
+  userId     String
+  feature    AiFeatureKey
+  subjectKey String
+  inputHash  String
+  output     Json
+  tokensIn   Int          @default(0)
+  tokensOut  Int          @default(0)
+  costCoins  Int          @default(0)
+  createdAt  DateTime     @default(now())
+  expiresAt  DateTime?
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, feature, subjectKey, inputHash])
+  @@index([userId, feature, createdAt])
+  @@index([expiresAt])
+}
+
+model ai_rate_bucket {
+  userId   String
+  feature  AiFeatureKey
+  windowAt DateTime
+  count    Int          @default(0)
+
+  @@id([userId, feature, windowAt])
+  @@index([windowAt])
+}
+
+model ai_unlock {
+  id           String         @id @default(cuid())
+  userId       String
+  startAt      DateTime       @default(now())
+  expiresAt    DateTime
+  status       AiUnlockStatus @default(active)
+  durationDays Int
+  costCoins    Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, expiresAt])
+  @@index([expiresAt])
 }

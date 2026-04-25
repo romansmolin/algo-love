@@ -1,41 +1,46 @@
 import { inject, injectable } from 'inversify'
 import { NextRequest, NextResponse } from 'next/server'
-import { UpdatePaymentFromReturnUseCase } from '../use-cases/update-payment-from-return.usecase'
+import { HandleReturnUseCase } from '../use-cases/handle-return.usecase'
 import { AppError } from '@/shared/errors/app-error'
+import { secureProcessorConfig } from '@/shared/config/secure-processor.config'
 
 @injectable()
 export class SecureProcessorReturnController {
     constructor(
-        @inject(UpdatePaymentFromReturnUseCase)
-        private useCase: UpdatePaymentFromReturnUseCase,
+        @inject(HandleReturnUseCase)
+        private useCase: HandleReturnUseCase,
     ) {}
 
     async handle(req: NextRequest): Promise<NextResponse> {
         const { searchParams } = new URL(req.url)
         const token = searchParams.get('token')
-        const status = searchParams.get('status')
-        const uid = searchParams.get('uid')
+        const statusHint = searchParams.get('status')
+        const uidHint = searchParams.get('uid')
 
         if (!token) {
-            throw AppError.validationError('Missing payment token')
+            return this.failedRedirect(null)
         }
 
-        await this.useCase.execute({
-            paymentTokenId: token,
-            status,
-            gatewayUid: uid,
-            rawPayload: Object.fromEntries(searchParams.entries()),
-        })
-
-        const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL
-        if (frontendUrl) {
-            const redirectUrl = new URL('/wallet', frontendUrl)
-            if (status) redirectUrl.searchParams.set('status', status)
-            if (token) redirectUrl.searchParams.set('token', token)
-            if (uid) redirectUrl.searchParams.set('uid', uid)
-            return NextResponse.redirect(redirectUrl)
+        try {
+            const result = await this.useCase.execute({
+                paymentTokenId: token,
+                statusHint,
+                uidHint,
+            })
+            return NextResponse.redirect(result.redirectUrl)
+        } catch (error) {
+            console.error('[SecureProcessorReturnController] handle error', error)
+            if (error instanceof AppError) {
+                return this.failedRedirect(token)
+            }
+            return this.failedRedirect(token)
         }
+    }
 
-        return NextResponse.json({ status: status ?? 'pending' })
+    private failedRedirect(token: string | null): NextResponse {
+        const params = new URLSearchParams({ status: 'error' })
+        if (token) params.set('token', token)
+        const url = `${secureProcessorConfig.frontendBaseUrl}/payments/secure-processor/failed?${params.toString()}`
+        return NextResponse.redirect(url)
     }
 }

@@ -16,6 +16,13 @@ export enum ErrorCode {
   // Authorization errors (403)
   FORBIDDEN = 'FORBIDDEN',
   EMAIL_NOT_VERIFIED = 'EMAIL_NOT_VERIFIED',
+  AI_LOCKED = 'AI_LOCKED',
+
+  // Payment required (402)
+  PAYMENT_REQUIRED = 'PAYMENT_REQUIRED',
+
+  // Rate limit (429)
+  RATE_LIMITED = 'RATE_LIMITED',
 
   // Resource errors (404)
   NOT_FOUND = 'NOT_FOUND',
@@ -24,6 +31,7 @@ export enum ErrorCode {
   // Conflict errors (409)
   CONFLICT = 'CONFLICT',
   EMAIL_ALREADY_EXISTS = 'EMAIL_ALREADY_EXISTS',
+  NOT_MATCHED = 'NOT_MATCHED',
 
   // Server errors (500)
   INTERNAL_ERROR = 'INTERNAL_ERROR',

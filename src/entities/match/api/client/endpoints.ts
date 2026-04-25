@@ -1,8 +1,16 @@
 import { api } from '@/shared/api/client/api'
 import { normalizeError } from '@/shared/api/client/error-normalizer'
-import { discoverMatches, getMatches, sendMatchAction, type DiscoverMatchesQuery } from './services/match.service'
+import {
+    discoverMatches,
+    getInteractions,
+    getMatches,
+    sendMatchAction,
+    type DiscoverMatchesQuery,
+    type InteractionsQuery,
+} from './services/match.service'
 import type {
     DiscoverMatchesResponse,
+    InteractionsResponse,
     MatchActionRequest,
     MatchActionResponse,
     MatchListResponse,
@@ -62,9 +70,32 @@ export const matchApi = api.injectEndpoints({
                     }
                 }
             },
-            invalidatesTags: ['Match'],
+            invalidatesTags: ['Match', 'Interactions'],
+        }),
+        getInteractions: builder.query<InteractionsResponse, InteractionsQuery>({
+            queryFn: async (query) => {
+                try {
+                    const data = await getInteractions(query)
+                    return { data }
+                } catch (error) {
+                    const normalized = normalizeError(error)
+                    return {
+                        error: {
+                            status: 'CUSTOM_ERROR' as const,
+                            data: normalized,
+                            error: normalized.message,
+                        },
+                    }
+                }
+            },
+            providesTags: ['Interactions'],
         }),
     }),
 })
 
-export const { useDiscoverMatchesQuery, useGetMatchesQuery, useMatchActionMutation } = matchApi
+export const {
+    useDiscoverMatchesQuery,
+    useGetMatchesQuery,
+    useMatchActionMutation,
+    useGetInteractionsQuery,
+} = matchApi

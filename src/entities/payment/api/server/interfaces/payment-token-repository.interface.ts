@@ -5,4 +5,6 @@ export interface IPaymentTokenRepository {
     update(id: string, input: UpdatePaymentTokenInput): Promise<PaymentToken>
     findById(id: string): Promise<PaymentToken | null>
     findByGatewayUid(gatewayUid: string): Promise<PaymentToken | null>
+    findByGatewayToken(gatewayToken: string): Promise<PaymentToken | null>
+    findByTrackingId(trackingId: string): Promise<PaymentToken | null>
 }

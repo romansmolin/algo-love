@@ -2,8 +2,6 @@ import { inject, injectable } from 'inversify'
 import { AppError } from '@/shared/errors/app-error'
 import type {
     DiscoverMatchesResponse,
-    MatchAction,
-    MatchActionResponse,
     MatchCandidate,
     MatchGender,
     MatchListResponse,
@@ -16,6 +14,7 @@ import {
     type PhotoBlockV2,
     type SearchResponse,
 } from '../repositories/match.repo'
+import { MatchInteractionRepository } from '../repositories/match-interaction.repo'
 
 type DiscoverFilters = {
     page?: number
@@ -24,6 +23,35 @@ type DiscoverFilters = {
     ageTo?: number
     sex?: '1' | '2' | '3'
     searchAction?: 'Last'
+}
+
+type CursorState = {
+    legacyPage: number
+}
+
+const DEFAULT_LIMIT = 20
+const UPSTREAM_BUFFER = 3 // pull this many ×limit from upstream so post-filter we still hit `limit`
+
+const encodeCursor = (state: CursorState): string => {
+    return Buffer.from(JSON.stringify(state), 'utf8').toString('base64url')
+}
+
+const decodeCursor = (raw: string | null): CursorState | null => {
+    if (!raw) return null
+
+    try {
+        const decoded = Buffer.from(raw, 'base64url').toString('utf8')
+        const parsed = JSON.parse(decoded) as CursorState
+        if (typeof parsed?.legacyPage === 'number' && parsed.legacyPage >= 0) {
+            return parsed
+        }
+    } catch {
+        // fall through
+    }
+
+    throw AppError.validationError('Invalid cursor', [
+        { field: 'cursor', message: 'cursor is malformed' },
+    ])
 }
 
 const toNumber = (value?: number | string): number | undefined => {
@@ -260,6 +288,26 @@ const parsePositiveQueryInteger = (value: string | null, field: string): number 
     return parsed
 }
 
+type DiscoverQuery = {
+    filters: DiscoverFilters
+    cursor: CursorState | null
+    limit: number
+}
+
+const parseLimit = (value: string | null): number => {
+    if (!value) return DEFAULT_LIMIT
+
+    const parsed = Number.parseInt(value, 10)
+
+    if (!Number.isFinite(parsed) || parsed < 1 || parsed > 100) {
+        throw AppError.validationError('Invalid limit query parameter', [
+            { field: 'limit', message: 'limit must be between 1 and 100' },
+        ])
+    }
+
+    return parsed
+}
+
 const getDiscoverFilters = (searchParams: URLSearchParams): DiscoverFilters => {
     const page = parseDiscoverPage(searchParams.get('page'))
     const perPage = parsePositiveQueryInteger(searchParams.get('perPage'), 'perPage')
@@ -297,20 +345,37 @@ const getDiscoverFilters = (searchParams: URLSearchParams): DiscoverFilters => {
     }
 }
 
+const getDiscoverQuery = (searchParams: URLSearchParams): DiscoverQuery => {
+    const filters = getDiscoverFilters(searchParams)
+    const cursor = decodeCursor(searchParams.get('cursor'))
+    const limit = parseLimit(searchParams.get('limit'))
+
+    return { filters, cursor, limit }
+}
+
 @injectable()
 export class MatchService {
-    constructor(@inject(MatchRepository) private repository: MatchRepository) {}
+    constructor(
+        @inject(MatchRepository) private repository: MatchRepository,
+        @inject(MatchInteractionRepository)
+        private interactionRepo: MatchInteractionRepository,
+    ) {}
 
     async discoverMatches(
         sessionId: string,
+        appUserId: string,
         searchParams: URLSearchParams,
     ): Promise<DiscoverMatchesResponse> {
-        const filters = getDiscoverFilters(searchParams)
+        const { filters, cursor, limit } = getDiscoverQuery(searchParams)
+
+        // Cursor takes precedence over the legacy `page` query param so
+        // pagination is dupe-free across refreshes and devices.
+        const legacyPage = cursor?.legacyPage ?? filters.page ?? 0
 
         const payload = await this.repository.discoverMatches({
             sessionId,
-            page: filters.page,
-            perPage: filters.perPage,
+            page: legacyPage,
+            perPage: filters.perPage ?? limit * UPSTREAM_BUFFER,
             ageFrom: filters.ageFrom,
             ageTo: filters.ageTo,
             sex: filters.sex,
@@ -319,15 +384,28 @@ export class MatchService {
 
         ensureConnectedForDiscover(payload)
 
-        const items = (payload.result ?? [])
+        const actedTargetIds = await this.interactionRepo.listActedTargetIds(appUserId)
+
+        const filtered = (payload.result ?? [])
             .map(toMatchCandidate)
-            .filter((item): item is MatchCandidate => item != null)
+            .filter((item): item is MatchCandidate => item != null && !actedTargetIds.has(item.id))
+            .slice(0, limit)
+
+        const upstreamHasMore =
+            (payload.result ?? []).length > 0 &&
+            (toPositiveInteger(payload.nb_pages) ?? legacyPage + 2) > legacyPage + 1
+
+        const nextCursor =
+            filtered.length === limit && upstreamHasMore
+                ? encodeCursor({ legacyPage: legacyPage + 1 })
+                : null
 
         return {
-            items,
-            page: filters.page,
+            items: filtered,
+            nextCursor,
+            page: legacyPage,
             totalPages: toPositiveInteger(payload.nb_pages),
-            total: toNonNegativeInteger(payload.total) ?? items.length,
+            total: toNonNegativeInteger(payload.total) ?? filtered.length,
         }
     }
 
@@ -344,22 +422,6 @@ export class MatchService {
         return {
             items,
             total: extractTotalFromMatchListPayload(payload, items.length),
-        }
-    }
-
-    async submitAction(
-        sessionId: string,
-        userId: number,
-        action: MatchAction,
-    ): Promise<MatchActionResponse> {
-        const response =
-            action === 'like'
-                ? await this.repository.setLike(sessionId, userId)
-                : await this.repository.setDislike(sessionId, userId)
-
-        return {
-            result: response.result,
-            isMatch: response.result === 'match',
         }
     }
 }

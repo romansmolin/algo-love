@@ -64,6 +64,13 @@ export interface UserProfileResponse {
   user: UserProfile
 }
 
+export type UserInteractionState = 'none' | 'liked' | 'disliked' | 'skipped' | 'matched'
+
+export interface UserDetailsResponse {
+  user: UserProfile
+  interactionState: UserInteractionState
+}
+
 export interface UpdateProfileRequest {
   fullName: string
   height?: number

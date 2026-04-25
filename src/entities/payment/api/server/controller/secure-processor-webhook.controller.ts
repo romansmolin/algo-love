@@ -10,14 +10,13 @@ export class SecureProcessorWebhookController {
     ) {}
 
     async handle(req: NextRequest): Promise<NextResponse> {
-        const signature = req.headers.get('Content-Signature')
-        const rawBody = await req.text()
+        const authorization = req.headers.get('Authorization') ?? req.headers.get('authorization')
+        const contentSignature =
+            req.headers.get('Content-Signature') ?? req.headers.get('content-signature')
+        const rawBody = Buffer.from(await req.arrayBuffer())
 
-        await this.useCase.execute({
-            rawBody,
-            signature,
-        })
+        await this.useCase.execute({ rawBody, authorization, contentSignature })
 
-        return NextResponse.json({ ok: true })
+        return NextResponse.json({ received: true })
     }
 }

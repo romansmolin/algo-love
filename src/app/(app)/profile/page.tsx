@@ -4,6 +4,11 @@ import { FormEvent, useMemo, useState } from 'react'
 import { Mail, MapPin, UserCircle } from 'lucide-react'
 import { useGetUserProfileQuery, useUpdateUserProfileMutation } from '@/entities/user/api/client/endpoints'
 import { AppPageShell, AppSectionCard, QueryState, getErrorMessage } from '@/components/app'
+import {
+    BioRewritePanel,
+    PhotoSpotlightPanel,
+    ProfileAnalyzerPanel,
+} from '@/components/ai'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 
@@ -143,6 +148,10 @@ export default function ProfilePage() {
                                         className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                                         placeholder="Share a short intro"
                                     />
+                                    <BioRewritePanel
+                                        bio={description}
+                                        onApply={(rewrite) => setDescriptionDraft(rewrite)}
+                                    />
                                 </div>
 
                                 {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
@@ -224,10 +233,14 @@ export default function ProfilePage() {
                                     <p className="text-sm text-slate-500">No photos available.</p>
                                 )}
                             </AppSectionCard>
+
+                            <PhotoSpotlightPanel />
                         </div>
                     </div>
                 ) : null}
             </QueryState>
+
+            {profile ? <ProfileAnalyzerPanel /> : null}
         </AppPageShell>
     )
 }

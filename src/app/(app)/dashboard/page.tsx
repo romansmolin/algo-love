@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { Activity, Crown, Gift } from 'lucide-react'
 import { useGetCommunityActivityQuery, useGetTopMembersQuery } from '@/entities/dashboard/api/client/endpoints'
 import { useGetGiftInventoryQuery } from '@/entities/gift/api/client/endpoints'
@@ -98,7 +99,11 @@ export default function DashboardPage() {
                 >
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {topMembers.map((member) => (
-                            <article key={member.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                            <Link
+                                key={member.id}
+                                href={`/users/${member.id}`}
+                                className="block rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-[var(--accent)] hover:bg-[var(--accent-warm)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                            >
                                 <div className="flex items-start gap-3">
                                     {member.photoUrl ? (
                                         <img
@@ -126,7 +131,7 @@ export default function DashboardPage() {
                                         </span>
                                     ) : null}
                                 </div>
-                            </article>
+                            </Link>
                         ))}
                     </div>
                 </QueryState>

@@ -4,15 +4,10 @@ import type {
     CreateCheckoutInput,
     CreateCheckoutResult,
     PaymentGatewayAdapter,
+    QueryCheckoutResult,
 } from '../interfaces/payment-gateway.interface'
-import { getEnvVar } from '@/shared/utils/get-env-var'
 import { HttpError } from '@/shared/errors/http-error'
-
-const SECURE_PROCESSOR_API_BASE_URL = getEnvVar('SECURE_PROCESSOR_API_BASE_URL')
-const SECURE_PROCESSOR_CHECKOUT_TOKEN_PATH = getEnvVar('SECURE_PROCESSOR_CHECKOUT_TOKEN_PATH')
-const SECURE_PROCESSOR_SHOP_ID = getEnvVar('SECURE_PROCESSOR_SHOP_ID')
-const SECURE_PROCESSOR_SECRET_KEY = getEnvVar('SECURE_PROCESSOR_SECRET_KEY')
-const NEXT_PUBLIC_SECURE_PROCESSOR_TEST_MODE = getEnvVar('SECURE_PROCESSOR_TEST_MODE')
+import { secureProcessorConfig } from '@/shared/config/secure-processor.config'
 
 const toSafeErrorPreview = (payload: string): string => {
     const compact = payload.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -27,27 +22,35 @@ export class SecureProcessorAdapter implements PaymentGatewayAdapter {
                 version: 2.1,
                 transaction_type: 'payment',
                 test: input.testMode,
+                iframe: true,
                 settings: {
                     return_url: input.returnUrl,
+                    ...(input.notificationUrl ? { notification_url: input.notificationUrl } : {}),
+                    language: 'en',
                 },
                 order: {
                     amount: input.amountCents,
                     currency: input.currency,
                     description: input.description,
+                    tracking_id: input.trackingId,
                 },
                 customer: {
                     id: input.customerId,
+                    ...(input.customerEmail ? { email: input.customerEmail } : {}),
                 },
                 metadata: input.metadata,
             },
         }
 
-        const configuredUrl = new URL(SECURE_PROCESSOR_CHECKOUT_TOKEN_PATH, SECURE_PROCESSOR_API_BASE_URL)
+        const configuredUrl = new URL(
+            secureProcessorConfig.checkoutTokenPath,
+            secureProcessorConfig.apiBaseUrl,
+        )
         let response = await this.requestCheckout(configuredUrl, payload)
 
         if (!response.ok && response.status === 404 && configuredUrl.pathname.endsWith('/checkout')) {
             const fallbackPath = configuredUrl.pathname.replace(/\/checkout$/, '/checkouts')
-            const fallbackUrl = new URL(fallbackPath, SECURE_PROCESSOR_API_BASE_URL)
+            const fallbackUrl = new URL(fallbackPath, secureProcessorConfig.apiBaseUrl)
             console.warn('[SecureProcessorAdapter] Checkout path returned 404, retrying fallback path', {
                 configuredPath: configuredUrl.pathname,
                 fallbackPath: fallbackUrl.pathname,
@@ -80,10 +83,64 @@ export class SecureProcessorAdapter implements PaymentGatewayAdapter {
         }
     }
 
-    private buildBasicAuthHeader(): string {
-        const value = `${SECURE_PROCESSOR_SHOP_ID}:${SECURE_PROCESSOR_SECRET_KEY}`
-        const encoded = Buffer.from(value).toString('base64')
-        return `Basic ${encoded}`
+    async queryCheckout(gatewayCheckoutToken: string): Promise<QueryCheckoutResult> {
+        const url = new URL(
+            `/ctp/api/checkouts/${encodeURIComponent(gatewayCheckoutToken)}`,
+            secureProcessorConfig.apiBaseUrl,
+        )
+
+        let response: Response
+        try {
+            response = await fetch(url.toString(), {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    Authorization: secureProcessorConfig.authHeader,
+                },
+            })
+        } catch {
+            throw new HttpError('Secure Processor reconciliation network error', 502)
+        }
+
+        if (!response.ok) {
+            const bodyText = await response.text().catch(() => '')
+            throw new HttpError(
+                `Secure Processor reconciliation failed (${response.status}). ${toSafeErrorPreview(bodyText)}`,
+                502,
+            )
+        }
+
+        const json = await response.json().catch(() => ({}))
+        const checkout = json?.checkout ?? json ?? {}
+        const order = checkout.order ?? {}
+        const gatewayResponse = checkout.gateway_response ?? {}
+        const payment = gatewayResponse.payment ?? checkout.payment ?? {}
+
+        const status =
+            payment.status ?? checkout.status ?? checkout.state ?? gatewayResponse.status ?? null
+        const uid = payment.uid ?? checkout.uid ?? gatewayResponse.uid ?? null
+        const amountCents =
+            typeof order.amount === 'number'
+                ? order.amount
+                : typeof checkout.amount === 'number'
+                  ? checkout.amount
+                  : null
+        const currency = order.currency ?? checkout.currency ?? null
+        const trackingId = order.tracking_id ?? checkout.tracking_id ?? null
+        const testMode = Boolean(
+            checkout.test ?? gatewayResponse.test ?? payment.test ?? checkout.settings?.test ?? null,
+        )
+
+        return {
+            status,
+            uid,
+            amountCents,
+            currency,
+            trackingId,
+            testMode,
+            rawPayload: json,
+        }
     }
 
     private async requestCheckout(url: URL, payload: unknown): Promise<Response> {
@@ -92,7 +149,7 @@ export class SecureProcessorAdapter implements PaymentGatewayAdapter {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: this.buildBasicAuthHeader(),
+                    Authorization: secureProcessorConfig.authHeader,
                 },
                 body: JSON.stringify(payload),
             })
@@ -102,7 +159,4 @@ export class SecureProcessorAdapter implements PaymentGatewayAdapter {
     }
 }
 
-export const isSecureProcessorTestMode = () => {
-    if (!NEXT_PUBLIC_SECURE_PROCESSOR_TEST_MODE) return false
-    return NEXT_PUBLIC_SECURE_PROCESSOR_TEST_MODE === 'true'
-}
+export const isSecureProcessorTestMode = () => secureProcessorConfig.isTestMode

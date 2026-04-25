@@ -34,3 +34,44 @@ export interface SendMessageResponse {
     message?: string
     date?: string
 }
+
+export interface ConversationSummary {
+    id: string
+    peerDatingId: number
+    lastMessageAt: string | null
+    lastReadAt: string | null
+    lastMessagePreview: string | null
+    unreadCount: number
+}
+
+export interface ConversationsListResponse {
+    conversations: ConversationSummary[]
+}
+
+export interface ConversationMessage {
+    id: string
+    legacyId: string | null
+    senderDatingId: number
+    body: string
+    createdAt: string
+    deliveredAt: string | null
+    readAt: string | null
+}
+
+export interface ConversationMessagesResponse {
+    messages: ConversationMessage[]
+    nextCursor: string | null
+}
+
+export interface SendConversationMessageRequest {
+    body: string
+    idempotencyKey: string
+}
+
+export interface SendConversationMessageResponse {
+    message: ConversationMessage
+}
+
+export interface MarkConversationReadResponse {
+    lastReadAt: string
+}

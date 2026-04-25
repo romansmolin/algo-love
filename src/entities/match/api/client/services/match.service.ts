@@ -1,12 +1,22 @@
 import { apiClient } from '@/shared/api/client/axios.config'
 import type {
     DiscoverMatchesResponse,
+    InteractionDirection,
+    InteractionsResponse,
     MatchActionRequest,
     MatchActionResponse,
     MatchListResponse,
 } from '@/entities/match/model/types'
 
+export type InteractionsQuery = {
+    direction: InteractionDirection
+    limit?: number
+    before?: string
+}
+
 export type DiscoverMatchesQuery = {
+    cursor?: string | null
+    limit?: number
     page?: number
     perPage?: number
     gender?: 'men' | 'women' | 'couple'
@@ -16,6 +26,14 @@ export type DiscoverMatchesQuery = {
 
 const toDiscoverQueryString = (query: DiscoverMatchesQuery): string => {
     const params = new URLSearchParams()
+
+    if (query.cursor) {
+        params.set('cursor', query.cursor)
+    }
+
+    if (typeof query.limit === 'number') {
+        params.set('limit', String(query.limit))
+    }
 
     if (typeof query.page === 'number') {
         params.set('page', String(query.page))
@@ -57,5 +75,17 @@ export async function getMatches(): Promise<MatchListResponse> {
 
 export async function sendMatchAction(data: MatchActionRequest): Promise<MatchActionResponse> {
     const response = await apiClient.post<MatchActionResponse>('/api/match/action', data)
+    return response.data
+}
+
+export async function getInteractions(query: InteractionsQuery): Promise<InteractionsResponse> {
+    const params = new URLSearchParams()
+    params.set('direction', query.direction)
+    if (typeof query.limit === 'number') params.set('limit', String(query.limit))
+    if (query.before) params.set('before', query.before)
+
+    const response = await apiClient.get<InteractionsResponse>(
+        `/api/interactions?${params.toString()}`,
+    )
     return response.data
 }
